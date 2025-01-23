@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: eduklik
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5433/test_edu_click
+    username: postgres
+    password: admin
+server:
+  port: 8099
