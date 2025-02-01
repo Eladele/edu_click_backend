@@ -4,10 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import mr.master.edu_click.professeur.dtos.ProfesseurDto;
 
 import java.util.List;
 
@@ -15,6 +13,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder(toBuilder = true)
 @Entity
 @Table(name = "professeurs")
 public class ProfesseurEntity {
@@ -47,9 +46,9 @@ public class ProfesseurEntity {
     @Column(name = "biographie", length = 1000) // Limite de taille pour éviter de surcharger la base de données
     private String biographie;
 
-    @NotBlank(message = "L'introduction ne peut pas être vide ou nulle")
-    @Column(name = "introduction", nullable = false, length = 500) // Limite de taille pour l'introduction
-    private String introduction;
+//    @NotBlank(message = "L'introduction ne peut pas être vide ou nulle")
+    @Column(name = "introduction", nullable = true, length = 500) // Limite de taille pour l'introduction
+    private String introduction="Aucune introduction fournie";
 
     @ElementCollection
     @CollectionTable(name = "professeur_educations", joinColumns = @JoinColumn(name = "professeur_id"))
@@ -85,7 +84,7 @@ public class ProfesseurEntity {
     @Column(name = "disponibilite") // Par exemple, une chaîne : "Lundi 9h-11h"
     private List<DisponibiliteEntity> disponibilites;
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "utilisateur_id", unique = true, nullable = false)
     private UtilisateurEntity utilisateur;
 
@@ -97,5 +96,29 @@ public class ProfesseurEntity {
     @ElementCollection
     @CollectionTable(name = "lieux_enseignement", joinColumns = @JoinColumn(name = "professeur_id"))
     @Column(name = "lieu_enseignement")
-    private List<String> lieuxEnseignement;
+        private List<String> lieuxEnseignement;
+
+    public ProfesseurDto toDto() {
+        return mr.master.edu_click.professeur.dtos.ProfesseurDto.builder()
+                .id(this.id)
+                .nom(this.nom)
+                .prenom(this.prenom)
+                .email(this.email)
+                .numerosTelephone(this.numerosTelephone)
+                .biographie(this.biographie)
+                .introduction(this.introduction)
+                .education(this.education)
+                .adresse(this.adresse)
+                .ville(this.ville)
+                .devise(this.devise)
+                .evaluation(this.evaluation)
+                .genre(this.genre)
+                .matieres(this.matieres)
+                .disponibilites(this.disponibilites)
+                .utilisateurId(this.utilisateur != null ? this.utilisateur.getId() : null)
+                .langues(this.langues)
+                .lieuxEnseignement(this.lieuxEnseignement)
+                .build();
+    }
+
 }

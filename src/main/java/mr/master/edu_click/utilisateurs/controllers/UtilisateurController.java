@@ -1,15 +1,15 @@
 package mr.master.edu_click.utilisateurs.controllers;
 
-
-import mr.master.edu_click.dao.entities.UtilisateurEntity;
+import mr.master.edu_click.utilisateurs.dtos.UtilisateurDto;
 import mr.master.edu_click.utilisateurs.services.UtilisateurService;
-import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+
 @RestController
-@RequestMapping("/api/utilisateurs")
+@RequestMapping("api/utilisateurs")
 public class UtilisateurController {
 
     private final UtilisateurService utilisateurService;
@@ -19,19 +19,29 @@ public class UtilisateurController {
     }
 
     @GetMapping
-    public List<UtilisateurEntity> getAllUtilisateurs() {
-        return utilisateurService.findAll();
+    public List<UtilisateurDto> getAll() {
+        return utilisateurService.getAll();
+    }
+
+    @GetMapping("/{id}")
+    public UtilisateurDto getById(@PathVariable("id") Long id) {
+        return utilisateurService.getById(id);
     }
 
     @PostMapping
-    public ResponseEntity<UtilisateurEntity> createUtilisateur(@RequestBody UtilisateurEntity utilisateur) {
-        UtilisateurEntity savedUtilisateur = utilisateurService.save(utilisateur);
-        return ResponseEntity.ok(savedUtilisateur);
+    @Transactional
+    public Long add(@RequestBody UtilisateurDto utilisateurDto) {
+        return utilisateurService.add(utilisateurDto);
     }
 
-    @GetMapping("/{email}")
-    public ResponseEntity<UtilisateurEntity> getUtilisateurByEmail(@PathVariable String email) {
-        UtilisateurEntity utilisateur = utilisateurService.findByEmail(email);
-        return ResponseEntity.ok(utilisateur);
+    @PutMapping("/{id}")
+    @Transactional
+    public Long update(@RequestBody UtilisateurDto utilisateurDto, @PathVariable("id") Long id) {
+        return utilisateurService.update(utilisateurDto, id);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteById(@PathVariable("id") Long id) {
+        utilisateurService.deleteById(id);
     }
 }

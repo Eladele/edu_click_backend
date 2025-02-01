@@ -5,18 +5,24 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import mr.master.edu_click.utilisateurs.dtos.UtilisateurDto;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder(toBuilder = true)
 @Entity
 @Table(name = "utilisateurs")
-public class UtilisateurEntity {
+public class UtilisateurEntity implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,11 +37,11 @@ public class UtilisateurEntity {
     @NotBlank(message = "Le mot de passe ne peut pas être vide ou nul")
     @Size(min = 6, message = "Le mot de passe doit contenir au moins 6 caractères")
     @Column(name = "mot_de_passe", nullable = false)
-    private String motDePasse;
+    private String password;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
-    private Role role; // Utilisation d'un enum pour limiter les rôles possibles.
+    private Role role;
 
     @Column(name = "est_active", nullable = false)
     private boolean estActive = true;
@@ -48,10 +54,63 @@ public class UtilisateurEntity {
     @OneToOne(mappedBy = "utilisateur", cascade = CascadeType.ALL, orphanRemoval = true)
     private ProfesseurEntity professeur;
 
-    // Enum pour définir les rôles possibles
+
+
     public enum Role {
         ADMIN,
         PROFESSEUR,
-        ETUDIANT
+        ETUDIANT;
+
+
+        public Collection<? extends GrantedAuthority> getAuthorities() {
+            return List.of();
+        }
+    }
+
+
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority(role.name()));
+    }
+    @Override
+    public String getPassword() {
+        return this.password;
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
+    public UtilisateurDto toDto() {
+        return UtilisateurDto.builder()
+                .id(this.id)
+                .email(this.email)
+                .motDePasse(this.password)
+                .role(this.role != null ? this.role.name() : null)
+                .estActive(this.estActive)
+                .telephone(Collections.singletonList(this.telephone))
+                .build();
     }
 }
+

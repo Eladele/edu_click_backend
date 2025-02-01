@@ -1,10 +1,33 @@
 spring:
+  security:
+    filter:
+      order: 0 # Assure que le filtre JWT est prioritaire
   application:
     name: eduklik
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5433/test_edu_click
+    url: jdbc:postgresql://localhost:5432/test_edu_click
     username: postgres
-    password: admin
+    password: test
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
 server:
   port: 8099
+
+
+application:
+  security:
+    jwt:
+      secret-key: nWR2SyNDEVEhpyY2gO/kmlR1kULXgsHjY80yfVeZA/t9IqNTc9m0Vwymsb7mslX9
+      expiration: 86400000 # a day
+      refresh-token:
+        expiration: 604800000 # 7 days
