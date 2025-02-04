@@ -62,31 +62,41 @@ public class JwtService {
 //            return false;
 //        }
 //    }
+//public boolean validateToken(String token) {
+//    try {
+//        Jws<Claims> claimsJws = Jwts.parser()
+//                .setSigningKey(secretKey)  // Utilise ta clé secrète ici
+//                .parseClaimsJws(token);
+//        return !claimsJws.getBody().getExpiration().before(new Date());  // Vérifie si le token est expiré
+//    } catch (Exception e) {
+//        return false;
+//    }
+//}
+
+
+//    public List<String> extractRoles(String token) {
+//        Claims claims = extractAllClaims(token);
+//        return claims.get("roles", List.class);
+//    }
+
+//    private Claims extractAllClaims(String token) {
+//        return Jwts.parserBuilder()
+//                .setSigningKey(getSigningKey())
+//                .build()
+//                .parseClaimsJws(token)
+//                .getBody();
+//    }
 public boolean validateToken(String token) {
     try {
-        Jws<Claims> claimsJws = Jwts.parser()
-                .setSigningKey(secretKey)  // Utilise ta clé secrète ici
+        Jws<Claims> claimsJws = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey()) // Utilise la méthode getSigningKey()
+                .build()
                 .parseClaimsJws(token);
-        return !claimsJws.getBody().getExpiration().before(new Date());  // Vérifie si le token est expiré
+        return !claimsJws.getBody().getExpiration().before(new Date());
     } catch (Exception e) {
         return false;
     }
 }
-
-
-    public List<String> extractRoles(String token) {
-        Claims claims = extractAllClaims(token);
-        return claims.get("roles", List.class);
-    }
-
-    private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-    }
-
     // 🔹 Extrait l'username depuis un token
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);

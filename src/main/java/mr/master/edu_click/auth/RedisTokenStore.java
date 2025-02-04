@@ -20,11 +20,16 @@ public class RedisTokenStore {
         );
     }
 
+//    public boolean validateToken(String username, String token) {
+//        String storedToken = (String) redisTemplate.opsForValue().get(KEY_PREFIX + username);
+//        return token.equals(storedToken);
+//    }
     public boolean validateToken(String username, String token) {
         String storedToken = (String) redisTemplate.opsForValue().get(KEY_PREFIX + username);
-        return token.equals(storedToken);
+        System.out.println("Stored Token: " + storedToken);
+        System.out.println("Incoming Token: " + token);
+        return token != null && token.equals(storedToken);
     }
-
     public void invalidateToken(String username) {
         redisTemplate.delete(KEY_PREFIX + username);
     }

@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Duration;
 import mr.master.edu_click.auth.dtos.LoginRequest;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -81,20 +83,27 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    private void setCookie(HttpServletResponse response, String name, String value, long maxAge) {
-        Cookie cookie = new Cookie(name, value);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true); // En production
-        cookie.setPath("/");
-        cookie.setMaxAge((int) maxAge);
-        response.addCookie(cookie);
-    }
-
+//    private void setCookie(HttpServletResponse response, String name, String value, long maxAge) {
+//        Cookie cookie = new Cookie(name, value);
+//        cookie.setHttpOnly(true);
+//        cookie.setSecure(true); // En production
+//        cookie.setPath("/");
+//        cookie.setMaxAge((int) maxAge);
+//        response.addCookie(cookie);
+//    }
+private void setCookie(HttpServletResponse response, String name, String value, long maxAge) {
+    Cookie cookie = new Cookie(name, value);
+    cookie.setHttpOnly(true);
+    cookie.setSecure(false); // Désactivé pour le développement en HTTP
+    cookie.setPath("/");
+    cookie.setMaxAge((int) maxAge);
+    response.addCookie(cookie);
+}
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request) {
         Arrays.stream(request.getCookies())
-                .filter(c -> "auth_token".equals(c.getName()))
+                .filter(c -> "access_token".equals(c.getName()))
                 .findFirst()
                 .ifPresent(c -> {
                     String username = jwtService.extractUsername(c.getValue());
@@ -103,4 +112,61 @@ public class AuthController {
 
         return ResponseEntity.ok().build();
     }
+
+
+//    @PostMapping("/login")
+//    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+//        if (request.password() == null || request.password().isBlank()) {
+//            return ResponseEntity.badRequest().body("Le mot de passe est obligatoire.");
+//        }
+//        try {
+//            UtilisateurEntity user = userService.findByEmail(request.email());
+//
+//            if (passwordEncoder.matches(request.password(), user.getPassword())) {
+//                String accessToken = jwtService.generateToken(user);
+//                String refreshToken = jwtService.generateRefreshToken(user);
+//
+//                // Stockage dans Redis
+//                tokenStore.storeToken(user.getEmail(), accessToken, Duration.ofMillis(jwtService.getExpiration()));
+//                tokenStore.storeRefreshToken(user.getEmail(), refreshToken, Duration.ofMillis(jwtService.getRefreshExpiration()));
+//
+//                // Définition des cookies
+//                setCookie(response, "access_token", accessToken, jwtService.getExpiration() / 1000);
+//                setCookie(response, "refresh_token", refreshToken, jwtService.getRefreshExpiration() / 1000);
+//
+//                // Gestion des rôles
+//                String role = String.valueOf(user.getRole());
+//                String redirectUrl = "/api/dashboard"; // Par défaut
+//
+//                if ("professeur".equals(role)) {
+//                    if (user.getProfesseur() == null) {
+//                        redirectUrl = "/api/completeProfile/professeur";
+//                    } else if (user.getProfesseur().getNom() != null) {
+//                        redirectUrl = "/api/professeurs/dashboard";
+//                    }
+//                } else if ("etudiant".equals(role)) {
+//                    if (user.getEtudiant() == null) {
+//                        redirectUrl = "/api/completeProfile/etudiant";
+//                    } else if (user.getEtudiant().getNom() != null) {
+//                        redirectUrl = "/api/etudiants/dashboard";
+//                    }
+//                }
+//
+//                // Réponse avec rôle, token et redirection
+//                Map<String, Object> responseBody = new HashMap<>();
+//                responseBody.put("accessToken", accessToken);
+//                responseBody.put("refreshToken", refreshToken);
+//                responseBody.put("role", role);
+//                responseBody.put("redirectUrl", redirectUrl);
+//
+//                return ResponseEntity.ok(responseBody);
+//            }
+//
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Identifiants incorrects.");
+//
+//        } catch (EntityNotFoundException e) {
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé.");
+//        }
+//    }
+
 }
