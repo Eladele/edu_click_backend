@@ -21,7 +21,22 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .csrf(csrf -> csrf.disable()) // Désactiver CSRF pour les API stateless
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Activation CORS
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Désactiver les sessions
+                )
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**").permitAll() // Autoriser l'accès à l'authentification
+//                        .requestMatchers("/api/utilisateurs/**").authenticated() // Protéger les endpoints des utilisateurs
+                        .anyRequest().permitAll() // Autoriser tous les autres endpoints sans authentification
+                )
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class) // Ajouter le filtre JWT
+                .build();
+    }
 //    @Bean
 //    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 //        http
@@ -38,20 +53,24 @@ public class SecurityConfig {
 //
 //        return http.build();
 //    }
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    return http
-            .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Activation CORS
-            .sessionManagement(session -> session
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/auth/**").permitAll()
-                    .requestMatchers("/api/utilisateurs/**").authenticated()
-                    .anyRequest().authenticated())
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .build();
-}
+
+
+
+
+//@Bean
+//public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+//    return http
+//            .csrf(csrf -> csrf.disable())
+//            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Activation CORS
+//            .sessionManagement(session -> session
+//                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+//            .authorizeHttpRequests(auth -> auth
+//                    .requestMatchers("/api/auth/**").permitAll()
+//                    .requestMatchers("/api/utilisateurs/**").authenticated()
+//                    .anyRequest().authenticated())
+//            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+//            .build();
+//}
 
     // Configuration CORS
     @Bean

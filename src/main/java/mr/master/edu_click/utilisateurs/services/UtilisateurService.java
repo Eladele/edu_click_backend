@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public class UtilisateurService implements UserDetailsService {
 
     private final UtilisateurRepository utilisateurRepository;
-//    private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
 //    public UtilisateurService(UtilisateurRepository utilisateurRepository) {
 //        this.utilisateurRepository = utilisateurRepository;
@@ -60,7 +60,7 @@ public UserDetails loadUserByUsername(String email) throws UsernameNotFoundExcep
 
     public Long add(UtilisateurDto utilisateurDto) {
         UtilisateurEntity utilisateur = utilisateurDto.toEntity();
-//        utilisateur.setPassword(passwordEncoder.encode(utilisateur.getPassword())); // 🔹 Cryptage du mot de passe
+        utilisateur.setPassword(passwordEncoder.encode(utilisateur.getPassword())); // 🔹 Cryptage du mot de passe
         return utilisateurRepository.save(utilisateur).getId();
     }
 

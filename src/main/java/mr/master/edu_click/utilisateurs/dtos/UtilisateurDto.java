@@ -16,10 +16,10 @@ import java.util.List;
 public class UtilisateurDto {
     private Long id;
     private String email;
-    private String motDePasse;
+    private String password;
     private String role;
     private boolean estActive;
-    private List<String> telephone;
+    private String telephone;
 
     public UtilisateurEntity toEntity() {
         return _toEntity(new UtilisateurEntity());
@@ -32,10 +32,11 @@ public class UtilisateurDto {
     private UtilisateurEntity _toEntity(UtilisateurEntity utilisateurEntity) {
         return utilisateurEntity.toBuilder()
                 .email(email)
-                .password(motDePasse)
+                .password(password != null ? password : "") // ✅ Évite que le password soit null
                 .role(role != null ? UtilisateurEntity.Role.valueOf(role) : null)
                 .estActive(estActive)
-                .telephone(String.valueOf(telephone))
+                .telephone(telephone)
                 .build();
     }
+
 }

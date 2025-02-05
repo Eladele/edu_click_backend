@@ -106,10 +106,10 @@ public class UtilisateurEntity implements UserDetails {
         return UtilisateurDto.builder()
                 .id(this.id)
                 .email(this.email)
-                .motDePasse(this.password)
+                .password(this.password)
                 .role(this.role != null ? this.role.name() : null)
                 .estActive(this.estActive)
-                .telephone(Collections.singletonList(this.telephone))
+                .telephone(this.telephone) // Pass the String directly
                 .build();
     }
 }

@@ -48,35 +48,73 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 //
 //        filterChain.doFilter(request, response);
 //    }
-@Override
-protected void doFilterInternal(HttpServletRequest request,
-                                HttpServletResponse response,
-                                FilterChain filterChain)
-        throws ServletException, IOException {
 
-    String token = null;
 
-    // Correction : vérifier si les cookies existent
-    Cookie[] cookies = request.getCookies();
-    if (cookies != null) {
-        token = Arrays.stream(cookies)
-                .filter(c -> "access_token".equals(c.getName()))
-                .findFirst()
-                .map(Cookie::getValue)
-                .orElse(null);
-    }
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
 
-    if (token != null && jwtService.validateToken(token)) {
-        String username = jwtService.extractUsername(token);
-
-        if (tokenStore.validateToken(username, token)) {
-            UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(username, null, List.of());
-            SecurityContextHolder.getContext().setAuthentication(auth);
+        // Ignorer les endpoints publics
+        if (request.getRequestURI().startsWith("/api/auth/")) {
+            filterChain.doFilter(request, response);
+            return;
         }
-    }
 
-    filterChain.doFilter(request, response);
-}
+        // Extraire le token du cookie
+        String token = null;
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            token = Arrays.stream(cookies)
+                    .filter(c -> "access_token".equals(c.getName()))
+                    .findFirst()
+                    .map(Cookie::getValue)
+                    .orElse(null);
+        }
+
+        // Valider le token
+        if (token != null && jwtService.validateToken(token)) {
+            String username = jwtService.extractUsername(token);
+
+            if (tokenStore.validateToken(username, token)) {
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(username, null, List.of());
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
+        }
+
+        filterChain.doFilter(request, response);
+    }
+//@Override
+//protected void doFilterInternal(HttpServletRequest request,
+//                                HttpServletResponse response,
+//                                FilterChain filterChain)
+//        throws ServletException, IOException {
+//
+//    String token = null;
+//
+//    // Correction : vérifier si les cookies existent
+//    Cookie[] cookies = request.getCookies();
+//    if (cookies != null) {
+//        token = Arrays.stream(cookies)
+//                .filter(c -> "access_token".equals(c.getName()))
+//                .findFirst()
+//                .map(Cookie::getValue)
+//                .orElse(null);
+//    }
+//
+//    if (token != null && jwtService.validateToken(token)) {
+//        String username = jwtService.extractUsername(token);
+//
+//        if (tokenStore.validateToken(username, token)) {
+//            UsernamePasswordAuthenticationToken auth =
+//                    new UsernamePasswordAuthenticationToken(username, null, List.of());
+//            SecurityContextHolder.getContext().setAuthentication(auth);
+//        }
+//    }
+//
+//    filterChain.doFilter(request, response);
+//}
 
 }

@@ -20,14 +20,17 @@ spring:
     redis:
       host: localhost
       port: 6379
+  web:
+    resources:
+      add-mappings: false # Désactive le mapping des ressources statiques par défaut
+
 server:
   port: 8099
-
 
 application:
   security:
     jwt:
       secret-key: nWR2SyNDEVEhpyY2gO/kmlR1kULXgsHjY80yfVeZA/t9IqNTc9m0Vwymsb7mslX9
-      expiration: 86400000 # a day
+      expiration: 86400000 # 1 jour (en millisecondes)
       refresh-token:
-        expiration: 604800000 # 7 days
+        expiration: 604800000 # 7 jours (en millisecondes)
