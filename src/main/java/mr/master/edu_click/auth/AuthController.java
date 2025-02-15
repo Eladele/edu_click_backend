@@ -4,22 +4,21 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import mr.master.edu_click.auth.dtos.AuthResponse;
 import mr.master.edu_click.dao.entities.UtilisateurEntity;
 import mr.master.edu_click.utilisateurs.services.UtilisateurService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 import java.time.Duration;
 import mr.master.edu_click.auth.dtos.LoginRequest;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
+@CrossOrigin(origins = "http://localhost:4200", allowCredentials = "true")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -30,35 +29,77 @@ public class AuthController {
     private final RedisTokenStore tokenStore;
     private final PasswordEncoder passwordEncoder;
 
-    @PostMapping("/login")
-    public ResponseEntity<Void> login(@RequestBody LoginRequest request, HttpServletResponse response) {
-        if (request.password() == null || request.password().isBlank()) {
-            return ResponseEntity.badRequest().build();
+//    @PostMapping("/login")
+//    public ResponseEntity<Void> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+//        if (request.password() == null || request.password().isBlank()) {
+//            return ResponseEntity.badRequest().build();
+//        }
+//        try {
+//            UtilisateurEntity user = userService.findByEmail(request.email());
+//
+//            if (passwordEncoder.matches(request.password(), user.getPassword())) {
+//                String accessToken = jwtService.generateToken(user);
+//                String refreshToken = jwtService.generateRefreshToken(user);
+//
+//                // Stockage dans Redis
+//                tokenStore.storeToken(user.getEmail(), accessToken, Duration.ofMillis(jwtService.getExpiration()));
+//                tokenStore.storeRefreshToken(user.getEmail(), refreshToken, Duration.ofMillis(jwtService.getRefreshExpiration()));
+//
+//                // Configuration des cookies
+//                setCookie(response, "access_token", accessToken, jwtService.getExpiration() / 1000);
+//                setCookie(response, "refresh_token", refreshToken, jwtService.getRefreshExpiration() / 1000);
+//
+//                return ResponseEntity.ok().build();
+//            }
+//
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+//
+//        } catch (EntityNotFoundException e) {
+//
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+//        }
+//    }
+@PostMapping("/login")
+public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+    System.out.println("Email reçu: " + request.email());
+    System.out.println("Mot de passe reçu: " + request.password());
+
+    try {
+        UtilisateurEntity user = userService.findByEmail(request.email());
+        System.out.println("Utilisateur trouvé: " + user.getEmail());
+
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            System.out.println("Mot de passe incorrect pour l'utilisateur: " + user.getEmail());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Identifiants incorrects.");
         }
-        try {
-            UtilisateurEntity user = userService.findByEmail(request.email());
 
-            if (passwordEncoder.matches(request.password(), user.getPassword())) {
-                String accessToken = jwtService.generateToken(user);
-                String refreshToken = jwtService.generateRefreshToken(user);
+        // Générer les tokens JWT
+        String accessToken = jwtService.generateToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
 
-                // Stockage dans Redis
-                tokenStore.storeToken(user.getEmail(), accessToken, Duration.ofMillis(jwtService.getExpiration()));
-                tokenStore.storeRefreshToken(user.getEmail(), refreshToken, Duration.ofMillis(jwtService.getRefreshExpiration()));
+        // Stocker dans Redis
+        tokenStore.storeToken(user.getEmail(), accessToken, Duration.ofMillis(jwtService.getExpiration()));
+        tokenStore.storeRefreshToken(user.getEmail(), refreshToken, Duration.ofMillis(jwtService.getRefreshExpiration()));
 
-                // Configuration des cookies
-                setCookie(response, "access_token", accessToken, jwtService.getExpiration() / 1000);
-                setCookie(response, "refresh_token", refreshToken, jwtService.getRefreshExpiration() / 1000);
+        // Configurer les cookies
+        setCookie(response, "access_token", accessToken, jwtService.getExpiration() / 1000);
+        setCookie(response, "refresh_token", refreshToken, jwtService.getRefreshExpiration() / 1000);
 
-                return ResponseEntity.ok().build();
-            }
+        return ResponseEntity.ok(new AuthResponse(accessToken));
 
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
-        } catch (EntityNotFoundException e) {
-
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+    } catch (EntityNotFoundException e) {
+        System.out.println("Utilisateur non trouvé avec l'email: " + request.email());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé.");
+    }
+}
+    // Méthode utilitaire pour configurer les cookies
+    private void setCookie(HttpServletResponse response, String name, String value, long maxAge) {
+        Cookie cookie = new Cookie(name, value);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false); // ⚠️ Mettre `true` en production (HTTPS)
+        cookie.setPath("/");
+        cookie.setMaxAge((int) maxAge);
+        response.addCookie(cookie);
     }
 
     @PostMapping("/refresh")
@@ -91,14 +132,17 @@ public class AuthController {
 //        cookie.setMaxAge((int) maxAge);
 //        response.addCookie(cookie);
 //    }
-private void setCookie(HttpServletResponse response, String name, String value, long maxAge) {
-    Cookie cookie = new Cookie(name, value);
-    cookie.setHttpOnly(true);
-    cookie.setSecure(false); // Désactivé pour le développement en HTTP
-    cookie.setPath("/");
-    cookie.setMaxAge((int) maxAge);
-    response.addCookie(cookie);
-}
+
+
+
+//private void setCookie(HttpServletResponse response, String name, String value, long maxAge) {
+//    Cookie cookie = new Cookie(name, value);
+//    cookie.setHttpOnly(true);
+//    cookie.setSecure(false); // Désactivé pour le développement en HTTP
+//    cookie.setPath("/");
+//    cookie.setMaxAge((int) maxAge);
+//    response.addCookie(cookie);
+//}
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request) {
