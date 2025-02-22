@@ -68,6 +68,9 @@ public class UtilisateurEntity implements UserDetails {
     }
 
 
+    public Role getRoles() {
+        return role;
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

@@ -16,14 +16,11 @@ spring:
     properties:
       hibernate:
         format_sql: false
-  data:
-    redis:
-      host: localhost
-      port: 6379
+
+
   web:
     resources:
       add-mappings: false # Désactive le mapping des ressources statiques par défaut
-
 server:
   port: 8099
 

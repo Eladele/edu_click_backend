@@ -14,147 +14,75 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 import mr.master.edu_click.auth.dtos.LoginRequest;
-import java.util.Arrays;
-import java.util.HashMap;
+
 import java.util.Map;
-import java.util.Optional;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+
 @CrossOrigin(origins = "http://localhost:4200", allowCredentials = "true")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UtilisateurService userService;
     private final JwtService jwtService;
-    private final RedisTokenStore tokenStore;
-    private final PasswordEncoder passwordEncoder;
+    private final UtilisateurService userService;
 
-//    @PostMapping("/login")
-//    public ResponseEntity<Void> login(@RequestBody LoginRequest request, HttpServletResponse response) {
-//        if (request.password() == null || request.password().isBlank()) {
-//            return ResponseEntity.badRequest().build();
-//        }
+    @PostMapping("/refresh-token")
+    public ResponseEntity<Map<String, String>> refreshToken(@RequestHeader("Authorization") String refreshToken, HttpServletResponse response) {
+        if (!jwtService.isRefreshTokenValid(refreshToken)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Invalid or expired refresh token"));
+        }
+        String username = jwtService.extractUsername(refreshToken);
+        UtilisateurEntity user = userService.findByEmail(username);
+        String newAccessToken = jwtService.generateToken(user);
+
+        ResponseCookie cookie = ResponseCookie.from("refresh_token", refreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(60 * 60 * 24 * 7)
+                .sameSite("Strict")
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        return ResponseEntity.ok(Map.of("access_token", newAccessToken));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, String>> authenticateUser(@RequestBody LoginRequest request, HttpServletResponse response) {
+        try {
+            Map<String, String> tokens = userService.authenticateUser(request.email(), request.password());
+            String accessToken = tokens.get("access_token");
+            String refreshToken = tokens.get("refresh_token");
+
+            userService.addCookie(response, "access_token", accessToken);
+            userService.addCookie(response, "refresh_token", refreshToken);
+            return ResponseEntity.ok(tokens);
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+//    @PostMapping("/register")
+//    public ResponseEntity<String> registerUser(@RequestBody LoginRequest request) {
 //        try {
-//            UtilisateurEntity user = userService.findByEmail(request.email());
-//
-//            if (passwordEncoder.matches(request.password(), user.getPassword())) {
-//                String accessToken = jwtService.generateToken(user);
-//                String refreshToken = jwtService.generateRefreshToken(user);
-//
-//                // Stockage dans Redis
-//                tokenStore.storeToken(user.getEmail(), accessToken, Duration.ofMillis(jwtService.getExpiration()));
-//                tokenStore.storeRefreshToken(user.getEmail(), refreshToken, Duration.ofMillis(jwtService.getRefreshExpiration()));
-//
-//                // Configuration des cookies
-//                setCookie(response, "access_token", accessToken, jwtService.getExpiration() / 1000);
-//                setCookie(response, "refresh_token", refreshToken, jwtService.getRefreshExpiration() / 1000);
-//
-//                return ResponseEntity.ok().build();
-//            }
-//
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-//
-//        } catch (EntityNotFoundException e) {
-//
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+//            userService.registerUser(request.email(), request.password(), "USER");
+//            return ResponseEntity.ok("User registered successfully");
+//        } catch (Exception e) {
+//            return ResponseEntity.status(400).body(e.getMessage());
 //        }
 //    }
-@PostMapping("/login")
-public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
-    System.out.println("Email reçu: " + request.email());
-    System.out.println("Mot de passe reçu: " + request.password());
-
-    try {
-        UtilisateurEntity user = userService.findByEmail(request.email());
-        System.out.println("Utilisateur trouvé: " + user.getEmail());
-
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            System.out.println("Mot de passe incorrect pour l'utilisateur: " + user.getEmail());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Identifiants incorrects.");
-        }
-
-        // Générer les tokens JWT
-        String accessToken = jwtService.generateToken(user);
-        String refreshToken = jwtService.generateRefreshToken(user);
-
-        // Stocker dans Redis
-        tokenStore.storeToken(user.getEmail(), accessToken, Duration.ofMillis(jwtService.getExpiration()));
-        tokenStore.storeRefreshToken(user.getEmail(), refreshToken, Duration.ofMillis(jwtService.getRefreshExpiration()));
-
-        // Configurer les cookies
-        setCookie(response, "access_token", accessToken, jwtService.getExpiration() / 1000);
-        setCookie(response, "refresh_token", refreshToken, jwtService.getRefreshExpiration() / 1000);
-
-        return ResponseEntity.ok(new AuthResponse(accessToken));
-
-    } catch (EntityNotFoundException e) {
-        System.out.println("Utilisateur non trouvé avec l'email: " + request.email());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non trouvé.");
-    }
-}
-    // Méthode utilitaire pour configurer les cookies
-    private void setCookie(HttpServletResponse response, String name, String value, long maxAge) {
-        Cookie cookie = new Cookie(name, value);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // ⚠️ Mettre `true` en production (HTTPS)
-        cookie.setPath("/");
-        cookie.setMaxAge((int) maxAge);
-        response.addCookie(cookie);
-    }
-
-    @PostMapping("/refresh")
-    public ResponseEntity<Void> refreshToken(HttpServletRequest request, HttpServletResponse response) {
-        Optional<String> refreshToken = Arrays.stream(request.getCookies())
-                .filter(c -> "refresh_token".equals(c.getName()))
-                .findFirst()
-                .map(Cookie::getValue);
-
-        if (refreshToken.isPresent() && jwtService.validateToken(refreshToken.get())) {
-            String username = jwtService.extractUsername(refreshToken.get());
-
-            if (tokenStore.validateRefreshToken(username, refreshToken.get())) {
-                String newAccessToken = jwtService.generateToken(userService.loadUserByUsername(username));
-                tokenStore.storeToken(username, newAccessToken, Duration.ofMillis(jwtService.getExpiration()));
-
-                setCookie(response, "access_token", newAccessToken, jwtService.getExpiration() / 1000);
-                return ResponseEntity.ok().build();
-            }
-        }
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-    }
-
-//    private void setCookie(HttpServletResponse response, String name, String value, long maxAge) {
-//        Cookie cookie = new Cookie(name, value);
-//        cookie.setHttpOnly(true);
-//        cookie.setSecure(true); // En production
-//        cookie.setPath("/");
-//        cookie.setMaxAge((int) maxAge);
-//        response.addCookie(cookie);
-//    }
-
-
-
-//private void setCookie(HttpServletResponse response, String name, String value, long maxAge) {
-//    Cookie cookie = new Cookie(name, value);
-//    cookie.setHttpOnly(true);
-//    cookie.setSecure(false); // Désactivé pour le développement en HTTP
-//    cookie.setPath("/");
-//    cookie.setMaxAge((int) maxAge);
-//    response.addCookie(cookie);
-//}
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletRequest request) {
-        Arrays.stream(request.getCookies())
-                .filter(c -> "access_token".equals(c.getName()))
-                .findFirst()
-                .ifPresent(c -> {
-                    String username = jwtService.extractUsername(c.getValue());
-                    tokenStore.invalidateToken(username);
-                });
-
-        return ResponseEntity.ok().build();
+    public ResponseEntity<String> logout(HttpServletResponse response) {
+        try {
+            userService.logout(response);
+            return ResponseEntity.ok("User logged out successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        }
     }
 
 

@@ -3,15 +3,14 @@ package mr.master.edu_click.auth;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
+import mr.master.edu_click.dao.entities.UtilisateurEntity;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.*;
-
 import io.jsonwebtoken.security.SignatureException;
-
 import java.util.Date;
 import java.util.function.Function;
 
@@ -24,6 +23,7 @@ public class JwtService {
     @Getter
     @Value("${application.security.jwt.expiration}")
     private long jwtExpiration;
+
     @Getter
     @Value("${application.security.jwt.refresh-token.expiration}")
     private long refreshExpiration;
@@ -32,7 +32,10 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
-    // 🔹 Génère un token JWT (utilisé pour Access et Refresh Tokens)
+    public boolean isRefreshTokenValid(String token) {
+        return validateToken(token);
+    }
+
     private String generateToken(Map<String, Object> extraClaims, String username, long expiration) {
         return Jwts.builder()
                 .setClaims(extraClaims)
@@ -43,77 +46,62 @@ public class JwtService {
                 .compact();
     }
 
-    // 🔹 Génère un Access Token (valide 15 minutes)
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails.getUsername(), jwtExpiration);
     }
 
-    // 🔹 Génère un Refresh Token (valide 7 jours)
+    public String generateToken(UtilisateurEntity user) {
+        return generateToken(new HashMap<>(), user.getEmail(), jwtExpiration);
+    }
+
     public String generateRefreshToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails.getUsername(), refreshExpiration);
     }
 
-//    // 🔹 Valide un token
-//    public boolean validateToken(String token) {
-//        try {
-//            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
-//            return true;
-//        } catch (ExpiredJwtException | UnsupportedJwtException | MalformedJwtException | SignatureException e) {
-//            return false;
-//        }
-//    }
-//public boolean validateToken(String token) {
-//    try {
-//        Jws<Claims> claimsJws = Jwts.parser()
-//                .setSigningKey(secretKey)  // Utilise ta clé secrète ici
-//                .parseClaimsJws(token);
-//        return !claimsJws.getBody().getExpiration().before(new Date());  // Vérifie si le token est expiré
-//    } catch (Exception e) {
-//        return false;
-//    }
-//}
-
-
-//    public List<String> extractRoles(String token) {
-//        Claims claims = extractAllClaims(token);
-//        return claims.get("roles", List.class);
-//    }
-
-//    private Claims extractAllClaims(String token) {
-//        return Jwts.parserBuilder()
-//                .setSigningKey(getSigningKey())
-//                .build()
-//                .parseClaimsJws(token)
-//                .getBody();
-//    }
-public boolean validateToken(String token) {
-    try {
-        Jws<Claims> claimsJws = Jwts.parserBuilder()
-                .setSigningKey(getSigningKey()) // Utilise la méthode getSigningKey()
-                .build()
-                .parseClaimsJws(token);
-        return !claimsJws.getBody().getExpiration().before(new Date());
-    } catch (Exception e) {
-        return false;
+    public boolean validateToken(String token) {
+        try {
+            Jws<Claims> claimsJws = Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token);
+            return !claimsJws.getBody().getExpiration().before(new Date());
+        } catch (Exception e) {
+            return false;
+        }
     }
-}
-    // 🔹 Extrait l'username depuis un token
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    // 🔹 Extrait une information spécifique d'un token
     private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        Claims claims = Jwts.parserBuilder().setSigningKey(getSigningKey()).build()
-                .parseClaimsJws(token).getBody();
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
         return claimsResolver.apply(claims);
     }
 
-    public long getExpiration() {
-        return jwtExpiration;
+    // Ajouter la fonction isTokenValid
+    public boolean isTokenValid(String token) {
+        return token != null && validateToken(token);
     }
 
-    public long getRefreshExpiration() {
-        return refreshExpiration;
+    // Ajouter la fonction getRoleFromToken
+    public List<String> getRoleFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        // Retourner la liste des rôles extraits du token
+        Object rolesClaim = claims.get("roles");
+        if (rolesClaim != null) {
+            return (List<String>) rolesClaim;
+        }
+        return Collections.emptyList(); // Si aucun rôle n'est trouvé
     }
 }
+
