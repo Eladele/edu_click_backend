@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         DOCKER_CREDENTIALS = credentials('7d1ad480-eebe-41b9-83a7-491290aa1274')
-        BACKEND_REPO = 'https://github.com/abdallahilili/edut_click.git'
+        BACKEND_REPO = 'https://github.com/Eladele/edu_click_backend.git'
     }
     
     stages {
