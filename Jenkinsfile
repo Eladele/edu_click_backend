@@ -15,14 +15,14 @@ pipeline {
         
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t eladel686/edu-click-backend:latest .'
+                bat 'docker build -t eladel686/edu-click-backend:latest .'
             }
         }
         
         stage('Push to Docker Hub') {
             steps {
-                sh '''
-                    echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin
+                bat '''
+                    echo %DOCKER_CREDENTIALS_PSW% | docker login -u %DOCKER_CREDENTIALS_USR% --password-stdin
                     docker push eladel686/edu-click-backend:latest
                 '''
             }
@@ -31,7 +31,7 @@ pipeline {
     
     post {
         always {
-            sh 'docker logout'
+            bat 'docker logout'
             cleanWs()
         }
     }
