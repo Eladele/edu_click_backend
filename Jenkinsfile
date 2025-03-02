@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_CREDENTIALS = credentials('7d1ad480-eebe-41b9-83a7-491290aa1274')
+        DOCKER_CREDENTIALS = credentials('3f680b4f-3020-49fe-be6d-d8f57d67676a')
         BACKEND_REPO = 'https://github.com/Eladele/edu_click_backend.git'
     }
     
