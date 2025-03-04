@@ -24,7 +24,7 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    withDockerRegistry([credentialsId: DOCKER_CREDENTIALS_ID, url: '']) {
+                    withDockerRegistry([credentialsId: DOCKER_CREDENTIALS_ID, url: 'https://index.docker.io/v1/']) {
                         bat "docker push ${DOCKER_USERNAME}/${BACK_IMAGE}:latest"
                     }
                 }
